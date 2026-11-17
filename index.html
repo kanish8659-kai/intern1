@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f7ff" />
+    <meta name="description" content="A private, browser-based password strength checker with helpful suggestions." />
+    <title>Password Strength Analyzer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #15233b;
+        --muted: #64748b;
+        --line: #e3eaf4;
+        --blue: #3569e8;
+        --blue-dark: #2457d1;
+        --blue-soft: #edf3ff;
+        --green: #15966d;
+        --red: #d84e5d;
+        --amber: #c88216;
+        --card: #ffffff;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        padding: 42px 20px;
+        background:
+          radial-gradient(ellipse at 12% 8%, rgba(192, 214, 255, .45), transparent 34%),
+          radial-gradient(ellipse at 90% 92%, rgba(198, 238, 225, .35), transparent 32%),
+          #f4f7fc;
+        color: var(--ink);
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      button, input { font: inherit; }
+      button { cursor: pointer; }
+      .shell { width: min(100%, 1040px); margin: 0 auto; }
+      .topline { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+      .brand { display: flex; align-items: center; gap: 11px; font-size: 14px; font-weight: 750; letter-spacing: -.02em; }
+      .brand-mark {
+        display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px;
+        background: linear-gradient(145deg, #4b7cf0, #2858ca); color: white;
+        box-shadow: 0 5px 13px rgba(53, 105, 232, .23);
+      }
+      .privacy { display: inline-flex; align-items: center; gap: 7px; color: #607087; font-size: 12px; font-weight: 650; }
+      .privacy svg { color: var(--green); }
+      .hero { margin: 0 0 22px; }
+      .eyebrow { margin: 0 0 8px; color: var(--blue); font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(28px, 5vw, 38px); letter-spacing: -.055em; line-height: 1.1; }
+      .intro { max-width: 590px; margin: 10px 0 0; color: var(--muted); font-size: 15px; line-height: 1.6; }
+      .layout { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(290px, .8fr); gap: 18px; align-items: stretch; }
+      .card { border: 1px solid var(--line); border-radius: 19px; background: var(--card); box-shadow: 0 12px 36px rgba(27, 50, 91, .055); }
+      .analyzer { padding: 27px; }
+      .card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 21px; }
+      h2 { margin: 0; font-size: 18px; letter-spacing: -.025em; }
+      .subheading { margin: 6px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+      .live-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid #dce8ff; border-radius: 999px; background: #f5f8ff; color: #4265aa; font-size: 11px; font-weight: 750; white-space: nowrap; }
+      .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #4b79e9; box-shadow: 0 0 0 3px #e4ecff; }
+      .field-label { display: block; margin-bottom: 8px; color: #35445c; font-size: 12px; font-weight: 750; }
+      .input-wrap { display: flex; align-items: center; gap: 8px; min-height: 54px; padding: 5px 7px 5px 15px; border: 1px solid #d9e2ef; border-radius: 12px; background: #fff; transition: border .18s, box-shadow .18s; }
+      .input-wrap:focus-within { border-color: #6f94ed; box-shadow: 0 0 0 4px rgba(53, 105, 232, .1); }
+      .input-wrap input { min-width: 0; flex: 1; border: 0; outline: 0; background: transparent; color: #20314b; font-size: 15px; letter-spacing: .05em; }
+      .input-wrap input::placeholder { color: #9aa7b8; letter-spacing: 0; }
+      .icon-btn { display: grid; width: 39px; height: 39px; flex: 0 0 auto; place-items: center; border: 0; border-radius: 9px; background: transparent; color: #73829a; }
+      .icon-btn:hover { background: #f1f5fb; color: #30425f; }
+      .strength-row { display: flex; align-items: center; justify-content: space-between; margin: 19px 0 8px; }
+      .strength-caption { color: #748196; font-size: 12px; font-weight: 650; }
+      .strength-value { color: #8995a7; font-size: 12px; font-weight: 800; }
+      .strength-value[data-level="weak"] { color: var(--red); }
+      .strength-value[data-level="fair"] { color: var(--amber); }
+      .strength-value[data-level="good"], .strength-value[data-level="strong"] { color: var(--green); }
+      .meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; height: 7px; }
+      .meter span { border-radius: 99px; background: #edf1f6; transition: background .2s; }
+      .meter[data-score="1"] span:nth-child(-n+1) { background: #e05b64; }
+      .meter[data-score="2"] span:nth-child(-n+2) { background: #e5a13c; }
+      .meter[data-score="3"] span:nth-child(-n+3) { background: #57b98d; }
+      .meter[data-score="4"] span:nth-child(-n+4) { background: #1da879; }
+      .checks { display: grid; grid-template-columns: 1fr 1fr; gap: 11px 14px; margin: 22px 0 21px; padding: 0; list-style: none; }
+      .check { display: flex; align-items: flex-start; gap: 8px; color: #77859a; font-size: 12px; line-height: 1.45; }
+      .check-icon { display: grid; width: 17px; height: 17px; flex: 0 0 auto; place-items: center; border: 1px solid #dce3ed; border-radius: 50%; color: transparent; font-size: 10px; font-weight: 900; }
+      .check.pass { color: #33445d; }
+      .check.pass .check-icon { border-color: #c9ebde; background: #e8f8f1; color: #16865f; }
+      .divider { height: 1px; margin: 18px 0; background: #edf1f6; }
+      .feedback { min-height: 42px; padding: 11px 13px; border: 1px solid #edf1f7; border-radius: 10px; background: #f8faff; color: #607087; font-size: 12px; line-height: 1.5; }
+      .feedback strong { color: #344760; }
+      .feedback[data-tone="success"] { border-color: #d7f0e5; background: #f1fbf6; color: #39785e; }
+      .feedback[data-tone="warning"] { border-color: #f5e7ca; background: #fffaf0; color: #8e661d; }
+      .side { display: flex; flex-direction: column; gap: 18px; }
+      .tips { padding: 23px 23px 19px; flex: 1; }
+      .tips h2 { display: flex; align-items: center; gap: 9px; }
+      .bulb { display: grid; width: 29px; height: 29px; place-items: center; border-radius: 9px; background: #fff6dc; color: #c68a20; }
+      .tip-intro { margin: 12px 0 14px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+      .suggestions { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+      .suggestions li { display: flex; align-items: flex-start; gap: 9px; color: #52637a; font-size: 12px; line-height: 1.45; }
+      .suggestions li::before { content: "→"; color: var(--blue); font-weight: 800; }
+      .generate { display: flex; width: 100%; align-items: center; justify-content: center; gap: 9px; margin-top: 19px; padding: 12px 14px; border: 1px solid #dce6fc; border-radius: 10px; background: var(--blue-soft); color: #315dc5; font-size: 12px; font-weight: 750; transition: transform .15s, background .15s; }
+      .generate:hover { transform: translateY(-1px); background: #e4edff; }
+      .learn { padding: 20px 22px; }
+      .learn-title { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 13px; font-weight: 800; }
+      .learn p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.6; }
+      footer { margin-top: 20px; color: #8793a4; font-size: 11px; text-align: center; }
+      .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+
+      @media (max-width: 760px) {
+        body { padding: 25px 14px; }
+        .layout { grid-template-columns: 1fr; }
+        .analyzer { padding: 21px; }
+        .tips { padding: 21px; }
+      }
+      @media (max-width: 430px) {
+        .privacy { font-size: 0; gap: 0; }
+        .privacy svg { width: 19px; height: 19px; }
+        .checks { grid-template-columns: 1fr; gap: 10px; }
+        .card-heading { margin-bottom: 18px; }
+        .live-pill { padding: 6px 8px; font-size: 10px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topline">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M7 10V7a5 5 0 0 1 10 0v3M6 10h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 14v3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </span>
+          <span>SecureLab <span style="color:#8b98aa;font-weight:600">/ Tools</span></span>
+        </div>
+        <div class="privacy" title="Your password stays in this browser">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m9 12 2 2 4-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Private by design
+        </div>
+      </header>
+
+      <section class="hero" aria-labelledby="page-title">
+        <p class="eyebrow">Password security</p>
+        <h1 id="page-title">Password Strength Analyzer</h1>
+        <p class="intro">Check how resilient a password is and get clear ideas for making it stronger. Your password is checked only in this browser.</p>
+      </section>
+
+      <div class="layout">
+        <section class="card analyzer" aria-labelledby="analyzer-title">
+          <div class="card-heading">
+            <div>
+              <h2 id="analyzer-title">Try a password</h2>
+              <p class="subheading">Enter a password to see its strength as you type.</p>
+            </div>
+            <span class="live-pill"><span class="live-dot" aria-hidden="true"></span> Live check</span>
+          </div>
+
+          <label class="field-label" for="password">Your password</label>
+          <div class="input-wrap">
+            <input id="password" type="password" autocomplete="new-password" placeholder="Type a password to analyze" aria-describedby="password-help" spellcheck="false" />
+            <button class="icon-btn" id="toggle-visibility" type="button" aria-label="Show password" title="Show password">
+              <svg id="eye-icon" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.7"/></svg>
+            </button>
+          </div>
+          <span id="password-help" class="sr-only">The password is analyzed locally and is not sent or saved.</span>
+
+          <div class="strength-row"><span class="strength-caption">Strength</span><span class="strength-value" id="strength-label" data-level="empty" aria-live="polite">Waiting for input</span></div>
+          <div class="meter" id="meter" data-score="0" role="img" aria-label="Password strength: waiting for input"><span></span><span></span><span></span><span></span></div>
+
+          <ul class="checks" aria-label="Password criteria">
+            <li class="check" id="check-length"><span class="check-icon" aria-hidden="true">✓</span><span>At least 12 characters</span></li>
+            <li class="check" id="check-mixed"><span class="check-icon" aria-hidden="true">✓</span><span>Uppercase and lowercase letters</span></li>
+            <li class="check" id="check-number"><span class="check-icon" aria-hidden="true">✓</span><span>At least one number</span></li>
+            <li class="check" id="check-symbol"><span class="check-icon" aria-hidden="true">✓</span><span>At least one symbol</span></li>
+            <li class="check" id="check-common"><span class="check-icon" aria-hidden="true">✓</span><span>Avoid common passwords</span></li>
+            <li class="check" id="check-pattern"><span class="check-icon" aria-hidden="true">✓</span><span>Avoid repeated patterns</span></li>
+          </ul>
+
+          <div class="divider"></div>
+          <div class="feedback" id="feedback" data-tone="neutral" role="status" aria-live="polite">Start typing to get a personal strength check and tips.</div>
+        </section>
+
+        <aside class="side" aria-label="Password advice">
+          <section class="card tips" aria-labelledby="tips-title">
+            <h2 id="tips-title"><span class="bulb" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 18h6m-5 3h4m-2-19a7 7 0 0 0-4 12.7c.5.4 1 1.2 1 2.3h4c0-1.1.5-1.9 1-2.3A7 7 0 0 0 12 2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Make it stronger</h2>
+            <p class="tip-intro" id="tip-intro">A few simple changes can make a password much harder to guess.</p>
+            <ul class="suggestions" id="suggestions">
+              <li>Use a longer passphrase made from several unrelated words.</li>
+              <li>Mix in uppercase letters, numbers, and symbols.</li>
+              <li>Avoid names, dates, keyboard runs, and reused passwords.</li>
+            </ul>
+            <button class="generate" id="generate" type="button">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.64 5.64l2.12 2.12m8.48 8.48 2.12 2.12m0-12.72-2.12 2.12m-8.48 8.48-2.12 2.12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/></svg>
+              Generate a strong example
+            </button>
+          </section>
+          <section class="card learn" aria-labelledby="learn-title">
+            <h3 class="learn-title" id="learn-title"><span aria-hidden="true" style="color:#3569e8">✦</span> What makes a password strong?</h3>
+            <p>Long, unique passwords are harder to guess. A passphrase with several unrelated words can be easier to remember and safer than a short word with a few substitutions.</p>
+          </section>
+        </aside>
+      </div>
+      <footer>Your input stays on this page. This demo does not store or send passwords.</footer>
+    </main>
+
+    <script>
+      const passwordInput = document.querySelector('#password');
+      const strengthLabel = document.querySelector('#strength-label');
+      const meter = document.querySelector('#meter');
+      const feedback = document.querySelector('#feedback');
+      const suggestions = document.querySelector('#suggestions');
+      const tipIntro = document.querySelector('#tip-intro');
+
+      const commonPasswords = new Set([
+        'password', 'password1', '123456', '12345678', '123456789', 'qwerty',
+        'qwerty123', 'letmein', 'admin', 'welcome', 'iloveyou', 'abc123',
+        'monkey', 'dragon', 'football', 'sunshine', 'trustno1', 'passw0rd'
+      ]);
+      const criteria = {
+        length: value => value.length >= 12,
+        mixed: value => /[a-z]/.test(value) && /[A-Z]/.test(value),
+        number: value => /\d/.test(value),
+        symbol: value => /[^A-Za-z0-9]/.test(value),
+        common: value => !commonPasswords.has(value.toLowerCase()),
+        pattern: value => !hasRepeatedPattern(value)
+      };
+
+      function hasRepeatedPattern(value) {
+        if (/(.)\1{2,}/.test(value)) return true;
+        const lowered = value.toLowerCase();
+        const runs = ['1234', '2345', '3456', '4567', '5678', '6789', 'abcd', 'bcde', 'cdef', 'qwerty', 'asdf', 'zxcv'];
+        return runs.some(run => lowered.includes(run) || lowered.includes([...run].reverse().join('')));
+      }
+
+      function setCheck(name, passed) {
+        document.querySelector(`#check-${name}`).classList.toggle('pass', passed);
+      }
+
+      function renderSuggestions(items) {
+        suggestions.replaceChildren(...items.map(item => {
+          const li = document.createElement('li');
+          li.textContent = item;
+          return li;
+        }));
+      }
+
+      function analyze(value) {
+        const isEmpty = value.length === 0;
+        const result = Object.fromEntries(Object.entries(criteria).map(([key, check]) => [key, check(value)]));
+        Object.entries(result).forEach(([key, passed]) => setCheck(key, !isEmpty && passed));
+        if (isEmpty) {
+          strengthLabel.textContent = 'Waiting for input';
+          strengthLabel.dataset.level = 'empty';
+          meter.dataset.score = '0';
+          meter.setAttribute('aria-label', 'Password strength: waiting for input');
+          feedback.dataset.tone = 'neutral';
+          feedback.textContent = 'Start typing to get a personal strength check and tips.';
+          tipIntro.textContent = 'A few simple changes can make a password much harder to guess.';
+          renderSuggestions([
+            'Use a longer passphrase made from several unrelated words.',
+            'Mix in uppercase letters, numbers, and symbols.',
+            'Avoid names, dates, keyboard runs, and reused passwords.'
+          ]);
+          return;
+        }
+
+        const failedCount = Object.values(result).filter(passed => !passed).length;
+        const score = Math.max(0, 6 - failedCount);
+        const level = score <= 2 ? 'weak' : score <= 4 ? 'fair' : score === 5 ? 'good' : 'strong';
+        const levelNames = { weak: 'Weak', fair: 'Fair', good: 'Good', strong: 'Strong' };
+        const meterScore = score <= 1 ? 1 : score <= 3 ? 2 : score <= 4 ? 3 : 4;
+        strengthLabel.textContent = levelNames[level];
+        strengthLabel.dataset.level = level;
+        meter.dataset.score = String(meterScore);
+        meter.setAttribute('aria-label', `Password strength: ${levelNames[level]}`);
+
+        const nextSteps = [];
+        if (!result.length) nextSteps.push('Make it at least 12 characters long; a few extra words work well.');
+        if (!result.mixed) nextSteps.push('Include both uppercase and lowercase letters.');
+        if (!result.number) nextSteps.push('Add a number that is not an obvious date or sequence.');
+        if (!result.symbol) nextSteps.push('Add a symbol, such as !, #, or %.');
+        if (!result.common) nextSteps.push('This matches a common password. Choose a completely different one.');
+        if (!result.pattern) nextSteps.push('Remove repeated characters or familiar runs like 1234 or qwerty.');
+        if (nextSteps.length) {
+          feedback.dataset.tone = level === 'weak' ? 'warning' : 'neutral';
+          feedback.innerHTML = `<strong>${level === 'weak' ? 'Needs work.' : 'A good start.'}</strong> ${nextSteps[0]}`;
+          tipIntro.textContent = 'Try these changes to improve this password:';
+          renderSuggestions(nextSteps.slice(0, 4));
+        } else {
+          feedback.dataset.tone = 'success';
+          feedback.innerHTML = '<strong>All checks passed.</strong> This looks strong by these basic checks. Make sure it is unique to this account.';
+          tipIntro.textContent = 'Your password passed all the checks in this demo.';
+          renderSuggestions([
+            'Use it for one account only; never reuse a password.',
+            'Consider storing it in a trusted password manager.',
+            'Turn on two-step verification when the service offers it.'
+          ]);
+        }
+      }
+
+      passwordInput.addEventListener('input', event => analyze(event.target.value));
+
+      document.querySelector('#toggle-visibility').addEventListener('click', event => {
+        const button = event.currentTarget;
+        const showing = passwordInput.type === 'text';
+        passwordInput.type = showing ? 'password' : 'text';
+        button.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+        button.title = showing ? 'Show password' : 'Hide password';
+        button.innerHTML = showing
+          ? '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 12s3.3-6 9.5-6 9.5 6 9.5 6-3.3 6-9.5 6-9.5-6-9.5-6Z" stroke="currentColor" stroke-width="1.7"/><circle cx="12" cy="12" r="2.5" stroke="currentColor" stroke-width="1.7"/></svg>'
+          : '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3 21 21M10.6 6.1c.5-.1.9-.1 1.4-.1 6.2 0 9.5 6 9.5 6a17.4 17.4 0 0 1-3.1 3.7M6.2 6.3C3.8 7.8 2.5 12 2.5 12s3.3 6 9.5 6c1.1 0 2-.2 2.9-.5M9.9 9.9a3 3 0 0 0 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      });
+
+      function secureRandomIndex(max) {
+        const range = 0x100000000;
+        const limit = range - (range % max);
+        const buffer = new Uint32Array(1);
+        let value;
+        do {
+          crypto.getRandomValues(buffer);
+          value = buffer[0];
+        } while (value >= limit);
+        return value % max;
+      }
+
+      function makeStrongExample() {
+        const groups = ['abcdefghijkmnopqrstuvwxyz', 'ABCDEFGHJKLMNPQRSTUVWXYZ', '23456789', '!@#$%&*?'];
+        const all = groups.join('');
+        const chars = groups.map(group => group[secureRandomIndex(group.length)]);
+        while (chars.length < 16) chars.push(all[secureRandomIndex(all.length)]);
+        for (let i = chars.length - 1; i > 0; i--) {
+          const j = secureRandomIndex(i + 1);
+          [chars[i], chars[j]] = [chars[j], chars[i]];
+        }
+        return chars.join('');
+      }
+
+      document.querySelector('#generate').addEventListener('click', () => {
+        passwordInput.value = makeStrongExample();
+        passwordInput.type = 'text';
+        const toggle = document.querySelector('#toggle-visibility');
+        toggle.setAttribute('aria-label', 'Hide password');
+        toggle.title = 'Hide password';
+        toggle.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 3 21 21M10.6 6.1c.5-.1.9-.1 1.4-.1 6.2 0 9.5 6 9.5 6a17.4 17.4 0 0 1-3.1 3.7M6.2 6.3C3.8 7.8 2.5 12 2.5 12s3.3 6 9.5 6c1.1 0 2-.2 2.9-.5M9.9 9.9a3 3 0 0 0 4.2 4.2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+        analyze(passwordInput.value);
+        passwordInput.focus();
+        passwordInput.select();
+      });
+    </script>
+  </body>
+</html>
